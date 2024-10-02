@@ -1,7 +1,5 @@
 from math import log
 import sys
-#coloquei dnv
-
 
 def Abrir_arquivo(entrada,lista):
 	"""
@@ -20,7 +18,6 @@ def Abrir_arquivo(entrada,lista):
 	except FileNotFoundError:
 		print('Arquivo não encontrado!')
 	
-
 
 
 # Políticas de substituição
