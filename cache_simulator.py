@@ -1,10 +1,6 @@
 from math import log
 import sys
-#branch1
-
-
-def Teste():
-	pass
+#coloquei dnv
 
 
 def Abrir_arquivo(entrada,lista):
