@@ -1,7 +1,6 @@
 from math import log
 import sys
-
-
+#branch
 
 def Abrir_arquivo(entrada,lista):
 	"""
