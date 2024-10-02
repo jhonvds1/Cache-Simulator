@@ -1,6 +1,7 @@
 from math import log
 import sys
 #coloquei dnv
+#branch mateus
 
 
 def Abrir_arquivo(entrada,lista):
