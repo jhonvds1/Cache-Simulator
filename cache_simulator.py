@@ -1,5 +1,7 @@
 from math import log
 import sys
+#coloquei dnv
+
 
 def Abrir_arquivo(entrada,lista):
 	"""
