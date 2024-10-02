@@ -1,6 +1,6 @@
 from math import log
 import sys
-
+#funfou
 
 def Abrir_arquivo(entrada,lista):
 	"""
