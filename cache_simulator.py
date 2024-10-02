@@ -2,6 +2,7 @@ from math import log
 import sys
 #funfou
 #e agora?
+#testee
 
 def Abrir_arquivo(entrada,lista):
 	"""
