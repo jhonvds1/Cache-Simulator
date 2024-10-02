@@ -2,6 +2,11 @@ from math import log
 import sys
 #branch
 
+
+def Teste():
+	pass
+
+
 def Abrir_arquivo(entrada,lista):
 	"""
 	Abre os Arquivos e guarda os endereços
