@@ -1,5 +1,6 @@
 from math import log
 import sys
+from random import randint
 
 def Abrir_arquivo(entrada,lista):
 	"""
@@ -21,8 +22,9 @@ def Abrir_arquivo(entrada,lista):
 
 
 # Políticas de substituição
-def Random():
-	pass
+def Random(assoc:int):
+	substituir=randint(0,assoc-1)
+	return substituir
 
 
 def LRU():
@@ -48,10 +50,15 @@ class Cache:
 		self.nsets=nsets
 		self.bsize=bsize
 		self.assoc=assoc
-		self.subs=subs
-		self.tamanho = nsets*bsize*assoc
+		self.subs=subs.upper()
+		print(self.subs)
+		self.tamanho= nsets*bsize*assoc
+		self.blocos=nsets*assoc
+		self.blocos_ocupados=0
 		self.bits_offset = int(log(bsize,2))
+		print(self.bits_offset)
 		self.bits_indice = int(log(nsets,2))
+		print(self.bits_indice)
 		self.bits_tag = 32 - self.bits_offset - self.bits_indice
 		self.validade = self.Gerar_Validade()
 		self.tag = self.Gerar_Tag()
@@ -84,26 +91,70 @@ class Cache:
 
 
 	def Acessar_Endereco(self, endereco:int) -> None:
+		miss_atual = 1
 		tag = endereco >> (self.bits_indice + self.bits_offset)
+		
 		#print(endereco)
 		indice = (endereco >> self.bits_offset) & (2**self.bits_indice -1)
+		print('indice: {}'.format(indice))
 		if(1 in self.validade[indice]):
-			for c in range(0,self.validade[indice]):
+			print("aaa")
+			for c in range(0,len(self.validade[indice])):
 				if(tag==self.tag[indice][c]):
-					pass #hit++
-			#
+					miss_atual = 0
+					global hits
+					hits += 1
+					print('hit')
+
+			if miss_atual == 1:
+				# cache cheia => miss capacidade
+				if self.blocos_ocupados == self.blocos:
+					global misses_capacidade
+					misses_capacidade+=1
+					if(self.assoc==1):
+						self.validade[indice][0] = 1
+						self.tag[indice][0] = tag
+					elif self.subs=="R":
+						entrada = Random(self.assoc)
+						self.validade[indice][entrada] = 1
+						self.tag[indice][entrada] = tag
+					elif self.subs=="L":
+						LRU(self.assoc)
+					elif self.subs=="F":
+						FIFO(self.assoc)
+					
+
+				else:
+					global misses_conflito
+					misses_conflito+1
+					if(self.assoc==1):
+						self.validade[indice][0] = 1
+						self.tag[indice][0] = tag
+					elif self.subs=="R":
+						entrada = Random(self.assoc)
+						self.validade[indice][entrada] = 1
+						self.tag[indice][entrada] = tag
+					elif self.subs=="L":
+						LRU(self.assoc)
+					elif self.subs=="F":
+						FIFO(self.assoc)
+			
+			
 		else:
-			pass #miss++
-		
-
-
-		print(self.bits_indice)
-		print(self.bits_offset)
-		print(tag)
-		print(indice)
-
-
-
+			global misses_compulsorio
+			misses_compulsorio+=1
+			if(self.assoc==1):
+				self.validade[indice][0] = 1
+				self.tag[indice][0] = tag
+				print("mc")
+			elif self.subs=="R":
+				entrada = Random(self.assoc)
+				self.validade[indice][entrada] = 1
+				self.tag[indice][entrada] = tag
+			elif self.subs=="L":
+				LRU(self.assoc)
+			elif self.subs=="F":
+				FIFO(self.assoc)
 
 
 
@@ -129,7 +180,20 @@ def main():
 	#cache.Printf(cache.tag)
 
 	#for end in enderecos:
-	cache.Acessar_Endereco(enderecos[0])				
+	for i in range(0,len(enderecos)):
+		global acessos
+		acessos += 1
+		print(enderecos[i])
+		cache.Acessar_Endereco(enderecos[i])
+		print('-'*5)
+	
+	print(acessos, end=" ")
+	print('{:.4f}'.format(hits/acessos), end=" ")
+	misses = misses_compulsorio+misses_capacidade+misses_capacidade
+	print('{:.4f}'.format(misses/acessos), end=" ")
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")			
+	print(f"{misses_conflito/misses:.2}", end=" ")	
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")						
 															 
 															#<--------------
 
@@ -154,12 +218,16 @@ def main():
 
 
 
-
-
+acessos=0
+hits=0
+misses_compulsorio = 0
+misses_conflito=0
+misses_capacidade=0
 
 if __name__ == '__main__':
 	main()
 
 
+
 # python cache_simulator.py 2 2 2 2 1 arquivo_de_entrada
-# python cache_simulator.py 2 2 2 2 1 bin_100.bin
+# python cache_simulator.py 32 1 1 R 1 bin_100.bin
