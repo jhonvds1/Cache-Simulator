@@ -1,11 +1,11 @@
 from math import log
 import sys
 from random import randint
+from time import time
+from graficos import mostrarGrafico
 
 def Abrir_arquivo(entrada,lista):
-	"""
-	Abre os Arquivos e guarda os endereços
-	"""
+	# Abre os Arquivos e guarda os endereços
 	try:
 		with open(entrada, 'rb') as arquivo:
 			while True:
@@ -19,150 +19,134 @@ def Abrir_arquivo(entrada,lista):
 	except FileNotFoundError:
 		print('Arquivo não encontrado!')
 	
+def Verifica_flag(flag:int):
+	if(flag==1):
+		ComFlag()
+	else:
+		SemFlag()
 
 
-# Políticas de substituição
-def Random(assoc:int):
-	substituir=randint(0,assoc-1)
-	return substituir
+def ComFlag():
+	print(acessos, end=" ")
+	print('{:.4f}'.format(hits/acessos), end=" ")
+	misses = misses_compulsorio+misses_capacidade+misses_conflito
+	print('{:.4f}'.format(misses/acessos), end=" ")
+	print(f"{misses_compulsorio/misses:.2f}", end=" ")
+	print('{:.2f}'.format(misses_capacidade/misses), end=" ")
+	print(f"{misses_conflito/misses:.2f}", end="\n")
 
-
-def LRU():
-	pass
-
-
-def FIFO():
-	pass
-
-
-def Com_flag():
-	pass
-
-def Sem_flag():
-	pass
-
-
-
-
+def SemFlag():
+	print('Tempo de execução: {:.2f} s'.format(tempo_exec))
+	mostrarGrafico(acessos, hits, misses_compulsorio, misses_capacidade, misses_conflito)
+	
 
 class Cache:
-	def __init__(self, nsets, bsize, assoc, subs):
+	def __init__(self, nsets, bsize, assoc, repl):
 		self.nsets=nsets
 		self.bsize=bsize
 		self.assoc=assoc
-		self.subs=subs.upper()
-		print(self.subs)
+		self.repl=repl.upper()
 		self.tamanho= nsets*bsize*assoc
 		self.blocos=nsets*assoc
 		self.blocos_ocupados=0
 		self.bits_offset = int(log(bsize,2))
-		print(self.bits_offset)
 		self.bits_indice = int(log(nsets,2))
-		print(self.bits_indice)
 		self.bits_tag = 32 - self.bits_offset - self.bits_indice
-		self.validade = self.Gerar_Validade()
-		self.tag = self.Gerar_Tag()
+		self.validade = [[0 for c in range(0, self.assoc)] for l in range(0, self.nsets)]
+		self.tag = [[-1 for c in range(0, self.assoc)] for l in range(0, self.nsets)]
+		self.fila_acessos = [[] for l in range(0, self.nsets)]
 	
-	def Gerar_Validade(self) -> list[list[int]]:
-		"""
-		método que gera a estrutura que armazena os bits de validade
-		"""
-		validade = []
-		for l in range(0, self.nsets):
-			linha = []
-			for c in range(0, self.assoc):
-				linha.append(0)
-			validade.append(linha)
-		return validade
 
-	def Gerar_Tag(self)->list[list[int]]:
-		tag=[]
-		for l in range(0, self.nsets):
-			linha=[]
-			for c in range(0, self.assoc):
-				linha.append(-1)
-			tag.append(linha)
-		return tag
+	def PegarDoRandom(self):
+		return randint(0, self.assoc-1)
 	
-	def Printf(self, lst: list[list[int]])->None:
-		for c in lst:
-			print(c)
-		print('\n\n\n')
+	def PegarDaFila(self, indice: int, tag: int) -> int:
+		try:
+			entrada = self.tag[indice].index(self.fila_acessos[indice][0])
+			self.fila_acessos[indice].pop(0)
+			self.fila_acessos[indice].append(tag)
+			return entrada
+		except ValueError:
+			return 0
 
 
 	def Acessar_Endereco(self, endereco:int) -> None:
-		miss_atual = 1
+		teve_miss = True
+
+		# Pega o tag e o indice do endereço
 		tag = endereco >> (self.bits_indice + self.bits_offset)
-		
-		#print(endereco)
 		indice = (endereco >> self.bits_offset) & (2**self.bits_indice -1)
-		print('indice: {}'.format(indice))
-		if(1 in self.validade[indice]):
-			print("aaa")
-			for c in range(0,len(self.validade[indice])):
-				if(tag==self.tag[indice][c]):
-					miss_atual = 0
-					global hits
-					hits += 1
-					print('hit')
 
-			if miss_atual == 1:
-				# cache cheia => miss capacidade
-				if self.blocos_ocupados == self.blocos:
-					global misses_capacidade
-					misses_capacidade+=1
-					if(self.assoc==1):
-						self.validade[indice][0] = 1
-						self.tag[indice][0] = tag
-					elif self.subs=="R":
-						entrada = Random(self.assoc)
-						self.validade[indice][entrada] = 1
-						self.tag[indice][entrada] = tag
-					elif self.subs=="L":
-						LRU(self.assoc)
-					elif self.subs=="F":
-						FIFO(self.assoc)
-					
+		# Permite o acesso as variáveis globais
+		global hits
+		global misses_compulsorio
+		global misses_capacidade
+		global misses_conflito
 
-				else:
-					global misses_conflito
-					misses_conflito+1
-					if(self.assoc==1):
-						self.validade[indice][0] = 1
-						self.tag[indice][0] = tag
-					elif self.subs=="R":
-						entrada = Random(self.assoc)
-						self.validade[indice][entrada] = 1
-						self.tag[indice][entrada] = tag
-					elif self.subs=="L":
-						LRU(self.assoc)
-					elif self.subs=="F":
-						FIFO(self.assoc)
-			
-			
-		else:
-			global misses_compulsorio
-			misses_compulsorio+=1
-			if(self.assoc==1):
-				self.validade[indice][0] = 1
-				self.tag[indice][0] = tag
-				print("mc")
-			elif self.subs=="R":
-				entrada = Random(self.assoc)
-				self.validade[indice][entrada] = 1
-				self.tag[indice][entrada] = tag
-			elif self.subs=="L":
-				LRU(self.assoc)
-			elif self.subs=="F":
-				FIFO(self.assoc)
+		# Testa se os bits válidos geram um hit
+		for c in range(0, self.assoc):
+			if(self.validade[indice][c] == 1 and tag == self.tag[indice][c]):
+				teve_miss = False
+				hits += 1
+				if self.repl == 'L':
+					for i in range(0,len(self.fila_acessos[indice])):
+						if self.fila_acessos[indice][i] == tag:
+							self.fila_acessos[indice].append(tag)
+							self.fila_acessos[indice].pop(i)
+		
+		# Se não teve hit, verifica o tipo de miss
+		if teve_miss:
+			# Se há entrada livre => miss compulsório
+			if 0 in self.validade[indice]:
+				misses_compulsorio+=1
+				self.blocos_ocupados+=1
 
+				# Sempre adiciona no fim da lista (mais recente)
+				if self.repl == "F" or self.repl == "L":
+					self.fila_acessos[indice].append(tag)
 
+				# Coloca o end na primeira posição disponível
+				for i in range(0, self.assoc):
+					if self.validade[indice][i] == 0:
+						self.validade[indice][i] = 1
+						self.tag[indice][i] = tag
+						break
+
+			# Se a cache está cheia => miss capacidade
+			elif self.blocos_ocupados == self.blocos:
+				misses_capacidade += 1
+				if(self.assoc == 1):
+					self.validade[indice][0] = 1
+					self.tag[indice][0] = tag
+				elif self.repl == "R":
+					entrada = self.PegarDoRandom()
+					self.validade[indice][entrada] = 1
+					self.tag[indice][entrada] = tag
+				elif self.repl == "F" or self.repl == "L": # Sempre retira da lista o primeiro (mais antigo)
+					entrada = self.PegarDaFila(indice, tag)
+					self.validade[indice][entrada] = 1
+					self.tag[indice][entrada] = tag
+				
+			# Senão => miss conflito
+			else:
+				misses_conflito += 1
+				if(self.assoc == 1):
+					self.validade[indice][0] = 1
+					self.tag[indice][0] = tag
+				elif self.repl == "R":
+					entrada = self.PegarDoRandom()
+					self.validade[indice][entrada] = 1
+					self.tag[indice][entrada] = tag
+				elif self.repl == "F" or self.repl == "L":
+					entrada = self.PegarDaFila(indice, tag)
+					self.validade[indice][entrada] = 1
+					self.tag[indice][entrada] = tag
 
 
 def main():
 	if (len(sys.argv) != 7):
 		print("Numero de argumentos incorreto. Utilize:")
-		print("python cache_simulator.py <nsets> <bsize> <assoc> <substituição> <flag_saida> arquivo_de_entrada")
+		print("python cache_simulator.py <nsets> <bsize> <assoc> <repl> <flag_saida> arquivo_de_entrada")
 		exit(1)
 
 	# Guarda a flag de saída
@@ -175,49 +159,24 @@ def main():
 	
 	# Cria um objeto cache com os parâmetros da cache
 	cache = Cache(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
-															#<--------------
-	#cache.Printf(cache.validade)                       	        
-	#cache.Printf(cache.tag)
 
-	#for end in enderecos:
+	# Acessas os endereços um a um
+	inicio = time()
+	
+	global acessos
 	for i in range(0,len(enderecos)):
-		global acessos
 		acessos += 1
-		print(enderecos[i])
 		cache.Acessar_Endereco(enderecos[i])
-		print('-'*5)
+
+	fim = time()
+	global tempo_exec
 	
-	print(acessos, end=" ")
-	print('{:.4f}'.format(hits/acessos), end=" ")
-	misses = misses_compulsorio+misses_capacidade+misses_capacidade
-	print('{:.4f}'.format(misses/acessos), end=" ")
-	print(f"{misses_compulsorio/misses:.2f}", end=" ")			
-	print(f"{misses_conflito/misses:.2}", end=" ")	
-	print('{:.2f}'.format(misses_capacidade/misses), end=" ")						
-															 
-															#<--------------
-
-
-
-
-	#for end in enderecos:
-	#	acesarCache(end)
+	# Saída
+	tempo_exec = fim-inicio
+	Verifica_flag(flag)
 	
-
-
-
-	"""
-	print("nsets =", nsets)
-	print("bsize =", bsize)
-	print("assoc =", assoc)
-	print("subst =", subst)
-	print("flagOut =", flagOut)
-	print("arquivo =", arquivoEntrada)
-	"""
-
-
-
-
+# Variaveis globais
+tempo_exec=0
 acessos=0
 hits=0
 misses_compulsorio = 0
@@ -226,8 +185,3 @@ misses_capacidade=0
 
 if __name__ == '__main__':
 	main()
-
-
-
-# python cache_simulator.py 2 2 2 2 1 arquivo_de_entrada
-# python cache_simulator.py 32 1 1 R 1 bin_100.bin
