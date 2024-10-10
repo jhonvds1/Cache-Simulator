@@ -1,4 +1,5 @@
 Nomes: Jonatha Viegas da Silva, Mateus Henrique Schröpfer
+link do github: https://github.com/jhonvds1/Cache-Simulator.git
 Link do github: https://github.com/MateusHsch/cache-simulator
 Simulador de Cache
 Um simulador de cache que funciona por um prompt na linha de comandos.
